@@ -744,8 +744,6 @@ location / {
 我们再去新增一个 Server 块
 
 ```bash
-
-
 #user  nobody;
 worker_processes  1;
 
