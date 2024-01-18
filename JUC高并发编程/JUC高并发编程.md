@@ -171,7 +171,6 @@ class Share{
         System.out.println(Thread.currentThread().getName()+ "::" + num);
         //  通知其它线程
         this.notifyAll();
-
     }
 
     public synchronized void decr() throws InterruptedException {
@@ -385,7 +384,7 @@ class ShareResource{
             while (flag != 1){
                 condition1.await();
             }
-            for (int i = 0; i < 5; i++) {
+            for (int i = 0; i < 5; i++) {                                                                                                                                           
                 System.out.println(Thread.currentThread().getName() + "::" + i + " ：轮数：" + loop);
             }
             setFlag(2); //  先修改标志位，再去通知
@@ -433,10 +432,7 @@ class ShareResource{
         } finally {
             lock.unlock();
         }
-
     }
-
-
 }
 
 public class TheadDemo3 {
@@ -612,7 +608,7 @@ public boolean add(E e) {
 具体表现为以下3 种形式：
 
 1. 对于普通同步方法，锁是当前实例对象
-2. 对鱼静态同步方法，锁是当前类的 Class 对象
+2. 对于静态同步方法，锁是当前类的 Class 对象
 3. 对于同步方法块，锁是 Synchronized 括号里配置的对象
 
 ### 6.2 公平锁和非公平锁
@@ -875,7 +871,7 @@ public interface ReadWriteLock {
 }
 ```
 
-eadWriteLock管理一组锁，一个是只读的锁，一个是写锁。
+ReadWriteLock管理一组锁，一个是只读的锁，一个是写锁。
 
 Java并发库中ReetrantReadWriteLock实现了ReadWriteLock接口并添加了 <font color="yellow">**可重入** </font>的特性。
 
@@ -1507,3 +1503,88 @@ public class ThreadDemo {
 ```
 
 可见，用什么condition执行等待，那么唤醒的时候，就是唤醒使用对应condition类的线程。
+
+
+
+1 2  2 3 3 4 5 5 6
+
+```java
+package com.xiancheng;
+
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+/**
+ * @Author: Ronnie LEE
+ * @Date: 2023/12/22 - 12 - 22 - 10:26
+ * @Description: com.xiancheng
+ * @version: 1.0
+ */
+public class test {
+    public static void main(String[] args) {
+        ShareSource shareSource = new ShareSource();
+        new Thread(() -> {
+            for (int i = 1; i <= 50; i++) {
+                shareSource.printA(i);
+            }
+        }, "A").start();
+
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        new Thread(() -> {
+            for (int i = 1; i <= 50; i++) {
+                shareSource.printB(i);
+            }
+        }, "B").start();
+    }
+}
+
+class ShareSource{  //  资源类 ===> 1个锁、2个Condition、2个方法 pringA()、printB()
+    private Lock lock = new ReentrantLock();
+    private final Condition condition1 = lock.newCondition();
+    private final Condition condition2 = lock.newCondition();
+    private int flag = 1;
+
+    public void setFlag(int flag) {
+        this.flag = flag;
+    }
+
+    public void printA(int loop){   //  轮数
+        lock.lock();
+        try {
+            while (flag != 1){
+                condition1.await();
+            }
+            System.out.println(Thread.currentThread().getName() + "第 " + loop + " 轮");
+            setFlag(2);
+            condition2.signal();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public void printB(int loop){   //  轮数
+        lock.lock();
+        try {
+            while (flag != 2){
+                condition2.await();
+            }
+            System.out.println(Thread.currentThread().getName() + "第 " + loop + " 轮");
+            setFlag(1);
+            condition1.signal();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+            lock.unlock();
+        }
+    }
+}
+```
+
